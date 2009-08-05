@@ -23,10 +23,12 @@ class IO
   end
 end
 
+
 module PostgresPR
 
-class ParseError < RuntimeError; end
-class DumpError < RuntimeError; end
+class PGError < StandardError; end
+class ParseError < PGError; end
+class DumpError < PGError; end
 
 
 # Base class representing a PostgreSQL protocol message
@@ -35,7 +37,7 @@ class Message
   MsgTypeMap = Hash.new { UnknownMessageType }
 
   def self.register_message_type(type)
-    raise "duplicate message type registration" if MsgTypeMap.has_key?(type)
+    raise(PGError, "duplicate message type registration") if MsgTypeMap.has_key?(type)
 
     MsgTypeMap[type] = self
 
@@ -99,7 +101,7 @@ end
 
 class UnknownMessageType < Message
   def dump
-    raise
+    raise PGError, "dumping unknown message"
   end
 end
 
@@ -118,7 +120,7 @@ class Authentification < Message
   end
 
   def self.register_auth_type(type)
-    raise "duplicate auth type registration" if AuthTypeMap.has_key?(type)
+    raise(PGError, "duplicate auth type registration") if AuthTypeMap.has_key?(type)
     AuthTypeMap[type] = self
     self.const_set(:AuthType, type) 
     class_eval "def auth_type() AuthType end"
@@ -328,12 +330,12 @@ module NoticeErrorMixin
   attr_accessor :field_type, :field_values
 
   def initialize(field_type=0, field_values=[])
-    raise ArgumentError if field_type == 0 and not field_values.empty?
+    raise PGError if field_type == 0 and not field_values.empty?
     @field_type, @field_values = field_type, field_values
   end
 
   def dump
-    raise ArgumentError if @field_type == 0 and not @field_values.empty?
+    raise PGError if @field_type == 0 and not @field_values.empty?
 
     sz = 1 
     sz += @field_values.inject(1) {|sum, fld| sum + fld.size + 1} unless @field_type == 0 

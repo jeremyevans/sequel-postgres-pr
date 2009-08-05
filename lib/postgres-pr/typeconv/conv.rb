@@ -1,5 +1,5 @@
 module Postgres
   module Conversion
-    class ConversionError < Exception; end
+    class ConversionError < PostgresPR::PGError; end
   end
 end

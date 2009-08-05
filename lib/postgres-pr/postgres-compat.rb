@@ -97,7 +97,7 @@ class PGresult
   end
 
   def size(index)
-    raise
+    raise PGError, 'size not implemented'
     # TODO: correct?
     @res.fields[index].typlen
   end
@@ -137,5 +137,4 @@ class PGresult
 
 end
 
-class PGError < Exception
-end
+PGError = PostgresPR::PGError

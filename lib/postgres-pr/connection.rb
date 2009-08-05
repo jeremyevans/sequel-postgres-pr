@@ -57,15 +57,15 @@ class Connection
 
       case msg
       when AuthentificationClearTextPassword
-        raise ArgumentError, "no password specified" if password.nil?
+        raise PGError, "no password specified" if password.nil?
         @conn << PasswordMessage.new(password).dump
 
       when AuthentificationCryptPassword
-        raise ArgumentError, "no password specified" if password.nil?
+        raise PGError, "no password specified" if password.nil?
         @conn << PasswordMessage.new(password.crypt(msg.salt)).dump
 
       when AuthentificationMD5Password
-        raise ArgumentError, "no password specified" if password.nil?
+        raise PGError, "no password specified" if password.nil?
         require 'digest/md5'
 
         m = Digest::MD5.hexdigest(password + user) 
@@ -74,11 +74,11 @@ class Connection
         @conn << PasswordMessage.new(m).dump
 
       when AuthentificationKerberosV4, AuthentificationKerberosV5, AuthentificationSCMCredential
-        raise "unsupported authentification"
+        raise PGError, "unsupported authentification"
 
       when AuthentificationOk
       when ErrorResponse
-        raise msg.field_values.join("\t")
+        raise PGError, msg.field_values.join("\t")
       when NoticeResponse
         @notice_processor.call(msg) if @notice_processor
       when ParameterStatus
@@ -90,13 +90,13 @@ class Connection
         @transaction_status = msg.backend_transaction_status_indicator
         break
       else
-        raise "unhandled message type"
+        raise PGError, "unhandled message type"
       end
     end
   end
 
   def close
-    raise "connection already closed" if @conn.nil?
+    raise(PGError, "connection already closed") if @conn.nil?
     @conn.shutdown
     @conn = nil
   end
@@ -139,7 +139,7 @@ class Connection
       end
     end
 
-    raise errors.map{|e| e.field_values.join("\t") }.join("\n") unless errors.empty?
+    raise(PGError, errors.map{|e| e.field_values.join("\t") }.join("\n")) unless errors.empty?
 
     result
   end
@@ -166,7 +166,7 @@ class Connection
     when 'unix'
       @conn = UNIXSocket.new(u.path)
     else
-      raise 'unrecognized uri scheme format (must be tcp or unix)'
+      raise PGError, 'unrecognized uri scheme format (must be tcp or unix)'
     end
   end
 end
