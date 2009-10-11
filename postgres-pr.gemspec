@@ -7,18 +7,12 @@ else
 end
 
 spec = Gem::Specification.new do |s|
-  s.name = 'postgres-pr'
+  s.name = 'jeremyevans-postgres-pr'
   s.version = version
   s.summary = 'A pure Ruby interface to the PostgreSQL (>= 7.4) database'
   s.requirements << 'PostgreSQL >= 7.4'
-
-  s.files = (Dir['lib/**/*'] + Dir['test/**/*'] + 
-             Dir['examples/**/*'])
-
+  s.files = (Dir['lib/**/*'] + Dir['test/**/*'] + Dir['examples/**/*'])
   s.require_path = 'lib'
-
-  s.author = "Michael Neumann"
-  s.email = "mneumann@ntecs.de"
-  s.homepage = "postgres-pr.rubyforge.org"
-  s.rubyforge_project = "postgres-pr"
+  s.author = "Jeremy Evans"
+  s.email = "code@jeremyevans.net"
 end
