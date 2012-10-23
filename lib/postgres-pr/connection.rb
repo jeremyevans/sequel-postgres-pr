@@ -109,6 +109,7 @@ class Connection
   end
 
   def query(sql)
+    raise(PGError, "connection already closed") if @conn.nil?
     @conn << Query.dump(sql)
 
     result = Result.new
