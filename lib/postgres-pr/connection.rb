@@ -119,7 +119,7 @@ class Connection
       msg = Message.read(@conn)
       case msg
       when DataRow
-        result.rows << msg.columns
+        result.rows << msg.columns.map{|f| set_encoding(f) }
       when CommandComplete
         result.cmd_tag = msg.cmd_tag
       when ReadyForQuery
@@ -170,6 +170,15 @@ class Connection
       raise PGError, 'unrecognized uri scheme format (must be tcp or unix)'
     end
   end
+
+  def set_encoding(string)
+    if string.encoding == Encoding::ASCII_8BIT && Encoding.default_external
+      string.force_encoding(Encoding.default_external).encode!
+    else
+      string
+    end
+  end
+
 end
 
 end # module PostgresPR
