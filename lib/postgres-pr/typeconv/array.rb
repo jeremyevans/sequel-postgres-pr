@@ -20,7 +20,7 @@ module Postgres::Conversion
 
     elems = []
     unless buf.scan(/\}/) # array is not empty
-      loop do
+      while true
         # skip whitespace
         buf.skip(/\s+/)   
 

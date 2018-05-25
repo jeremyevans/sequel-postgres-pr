@@ -52,7 +52,7 @@ class Connection
   
     @conn << StartupMessage.new(PROTO_VERSION, 'user' => user, 'database' => database).dump
 
-    loop do
+    while true
       msg = Message.read(@conn)
 
       case msg
@@ -115,7 +115,7 @@ class Connection
     result = Result.new
     errors = []
 
-    loop do
+    while true
       msg = Message.read(@conn)
       case msg
       when DataRow
