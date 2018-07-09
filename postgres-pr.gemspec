@@ -15,4 +15,5 @@ spec = Gem::Specification.new do |s|
   s.require_path = 'lib'
   s.author = "Jeremy Evans"
   s.email = "code@jeremyevans.net"
+  s.homepage = "https://github.com/jeremyevans/postgres-pr"
 end
