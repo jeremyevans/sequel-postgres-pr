@@ -421,6 +421,19 @@ class Query < Message
   register_message_type 'Q'
   fields :query
 
+  case RUBY_VERSION
+  when /\A1.8/
+    # nothing to do
+  when /\A1.9/
+    def initialize(query)
+      @query = String.new(query).force_encoding('BINARY')
+    end
+  else
+    def initialize(query)
+      @query = query.b
+    end
+  end
+
   def dump
     super(@query.size + 1) do |buffer|
       buffer.write_cstring(@query)
