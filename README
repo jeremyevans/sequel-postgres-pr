@@ -8,5 +8,7 @@ repository, with a goal of proper functioning with Sequel's postgres adapter.
 
 == Author and Copyright
 
-Copyright (c) 2005, 2008 by Michael Neumann (mneumann@ntecs.de). 
+Copyright (c) 2005, 2008 by Michael Neumann (mneumann@ntecs.de)
+Copyright (c) 2009, 2010, 2012, 2013, 2018 by Jeremy Evans (code@jeremyevans.net)
+
 Released under the same terms of license as Ruby.
