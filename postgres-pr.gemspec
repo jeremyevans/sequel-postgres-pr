@@ -16,4 +16,5 @@ spec = Gem::Specification.new do |s|
   s.author = "Jeremy Evans"
   s.email = "code@jeremyevans.net"
   s.homepage = "https://github.com/jeremyevans/postgres-pr"
+  s.license = 'Ruby'
 end
