@@ -11,7 +11,7 @@ spec = Gem::Specification.new do |s|
   s.version = version
   s.summary = 'A pure Ruby interface to the PostgreSQL (>= 7.4) database'
   s.requirements << 'PostgreSQL >= 7.4'
-  s.files = (Dir['lib/**/*'] + Dir['test/**/*'] + Dir['examples/**/*'])
+  s.files = Dir['{test,lib}/**/*']
   s.require_path = 'lib'
   s.author = "Jeremy Evans"
   s.email = "code@jeremyevans.net"
