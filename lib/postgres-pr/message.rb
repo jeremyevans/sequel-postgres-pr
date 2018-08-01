@@ -491,12 +491,13 @@ class StartupMessage < Message
   fields :proto_version, :params
 
   def dump
-    sz = @params.inject(4 + 4) {|sum, kv| sum + kv[0].size + 1 + kv[1].size + 1} + 1
+    params = @params.reject{|k,v| v.nil?}
+    sz = params.inject(4 + 4) {|sum, kv| sum + kv[0].size + 1 + kv[1].size + 1} + 1
 
     buffer = Buffer.of_size(sz)
     buffer.write_int32_network(sz)
     buffer.write_int32_network(@proto_version)
-    @params.each_pair {|key, value| 
+    params.each_pair {|key, value| 
       buffer.write_cstring(key)
       buffer.write_cstring(value)
     }
