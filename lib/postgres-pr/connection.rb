@@ -4,172 +4,158 @@
 # License:: Same as Ruby's or BSD
 #
 
-require 'postgres-pr/message'
-require 'postgres-pr/version'
-require 'uri'
 require 'socket'
 
 module PostgresPR
+  class Connection
+    CONNECTION_OK = -1
 
-PROTO_VERSION = 3 << 16   #196608
-
-class Connection
-
-  # A block which is called with the NoticeResponse object as parameter.
-  attr_accessor :notice_processor
-
-  #
-  # Returns one of the following statuses:
-  #
-  #   PQTRANS_IDLE    = 0 (connection idle)
-  #   PQTRANS_INTRANS = 2 (idle, within transaction block)
-  #   PQTRANS_INERROR = 3 (idle, within failed transaction)
-  #   PQTRANS_UNKNOWN = 4 (cannot determine status)
-  #
-  # Not yet implemented is:
-  #
-  #   PQTRANS_ACTIVE  = 1 (command in progress)
-  #
-  def transaction_status
-    case @transaction_status
-    when ?I
-      0
-    when ?T
-      2
-    when ?E
-      3
-    else
-      4
+    class << self
+      alias connect new
     end
-  end
 
-  def initialize(database, user, password=nil, uri = nil)
-    uri ||= DEFAULT_URI
-
-    @transaction_status = nil
-    @params = {}
-    establish_connection(uri)
-  
-    @conn << StartupMessage.new(PROTO_VERSION, 'user' => user, 'database' => database).dump
-
-    while true
-      msg = Message.read(@conn)
-
-      case msg
-      when AuthentificationClearTextPassword
-        raise PGError, "no password specified" if password.nil?
-        @conn << PasswordMessage.new(password).dump
-
-      when AuthentificationCryptPassword
-        raise PGError, "no password specified" if password.nil?
-        @conn << PasswordMessage.new(password.crypt(msg.salt)).dump
-
-      when AuthentificationMD5Password
-        raise PGError, "no password specified" if password.nil?
-        require 'digest/md5'
-
-        m = Digest::MD5.hexdigest(password + user) 
-        m = Digest::MD5.hexdigest(m + msg.salt)
-        m = 'md5' + m
-        @conn << PasswordMessage.new(m).dump
-
-      when AuthentificationKerberosV4, AuthentificationKerberosV5, AuthentificationSCMCredential
-        raise PGError, "unsupported authentification"
-
-      when AuthentificationOk
-      when ErrorResponse
-        raise PGError, msg.field_values.join("\t")
-      when NoticeResponse
-        @notice_processor.call(msg) if @notice_processor
-      when ParameterStatus
-        @params[msg.key] = msg.value
-      when BackendKeyData
-        # TODO
-        #p msg
-      when ReadyForQuery
-        @transaction_status = msg.backend_transaction_status_indicator
-        break
+    # Returns one of the following statuses:
+    #
+    #   PQTRANS_IDLE    = 0 (connection idle)
+    #   PQTRANS_INTRANS = 2 (idle, within transaction block)
+    #   PQTRANS_INERROR = 3 (idle, within failed transaction)
+    #   PQTRANS_UNKNOWN = 4 (cannot determine status)
+    #
+    # Not yet implemented is:
+    #
+    #   PQTRANS_ACTIVE  = 1 (command in progress)
+    #
+    def transaction_status
+      case @transaction_status
+      when 73 # I
+        0
+      when 84 # T
+        2
+      when 69 # E
+        3
       else
-        raise PGError, "unhandled message type"
-      end
-    end
-  end
-
-  def close
-    raise(PGError, "connection already closed") if @conn.nil?
-    @conn.shutdown
-    @conn = nil
-  end
-
-  class Result 
-    attr_accessor :rows, :fields, :cmd_tag
-    def initialize(rows=[], fields=[])
-      @rows, @fields = rows, fields
-    end
-  end
-
-  def query(sql)
-    raise(PGError, "connection already closed") if @conn.nil?
-    @conn << Query.dump(sql)
-
-    result = Result.new
-    errors = []
-
-    while true
-      msg = Message.read(@conn)
-      case msg
-      when DataRow
-        result.rows << msg.columns
-      when CommandComplete
-        result.cmd_tag = msg.cmd_tag
-      when ReadyForQuery
-        @transaction_status = msg.backend_transaction_status_indicator
-        break
-      when RowDescription
-        result.fields = msg.fields
-      when CopyInResponse
-      when CopyOutResponse
-      when EmptyQueryResponse
-      when ErrorResponse
-        # TODO
-        errors << msg
-      when NoticeResponse
-        @notice_processor.call(msg) if @notice_processor
-      else
-        # TODO
+        4
       end
     end
 
-    raise(PGError, errors.map{|e| e.field_values.join("\t") }.join("\n")) unless errors.empty?
+    def initialize(host, port, _, _, database, user, password)
+      @conn = _connection(host, port)
+      @transaction_status = nil
+      @params = {}
+    
+      @conn << StartupMessage.new('user' => user, 'database' => database).dump
 
-    result
-  end
+      while true
+        msg = Message.read(@conn)
 
-  DEFAULT_PORT = 5432
-  DEFAULT_HOST = 'localhost'
-  DEFAULT_PATH = '/tmp' 
-  DEFAULT_URI = 
-    if RUBY_PLATFORM.include?('win')
-      'tcp://' + DEFAULT_HOST + ':' + DEFAULT_PORT.to_s 
-    else
-      'unix:' + File.join(DEFAULT_PATH, '.s.PGSQL.' + DEFAULT_PORT.to_s)  
+        case msg
+        when AuthentificationClearTextPassword
+          check_password!(password)
+          @conn << PasswordMessage.new(password).dump
+        when AuthentificationMD5Password
+          check_password!(password)
+          require 'digest/md5'
+          @conn << PasswordMessage.new("md5#{Digest::MD5.hexdigest(Digest::MD5.hexdigest(password + user) << msg.salt)}").dump
+        when ErrorResponse
+          raise PGError, msg.field_values.join("\t")
+        when ReadyForQuery
+          @transaction_status = msg.backend_transaction_status_indicator
+          break
+        when AuthentificationOk, NoticeResponse, ParameterStatus, BackendKeyData
+          # ignore
+        when UnknownAuthType
+          raise PGError, "unhandled authentication type: #{msg.auth_type}"
+        else
+          raise PGError, "unhandled message type"
+        end
+      end
     end
 
-  private
+    def finish
+      check_connection_open!
+      @conn.shutdown
+      @conn = nil
+    end
 
-  # tcp://localhost:5432
-  # unix:/tmp/.s.PGSQL.5432
-  def establish_connection(uri)
-    u = URI.parse(uri)
-    case u.scheme
-    when 'tcp'
-      @conn = TCPSocket.new(u.host || DEFAULT_HOST, u.port || DEFAULT_PORT)
-    when 'unix'
-      @conn = UNIXSocket.new(u.path)
-    else
-      raise PGError, 'unrecognized uri scheme format (must be tcp or unix)'
+    def async_exec(sql)
+      check_connection_open!
+      @conn << Query.dump(sql)
+
+      rows = []
+      errors = []
+
+      while true
+        msg = Message.read(@conn)
+        case msg
+        when DataRow
+          rows << msg.columns
+        when CommandComplete
+          cmd_tag = msg.cmd_tag
+        when ReadyForQuery
+          @transaction_status = msg.backend_transaction_status_indicator
+          break
+        when RowDescription
+          fields = msg.fields
+        when ErrorResponse
+          errors << msg
+        when NoticeResponse, EmptyQueryResponse
+          # ignore
+        else
+          raise PGError, "unhandled message type"
+        end
+      end
+
+      raise(PGError, errors.map{|e| e.field_values.join("\t") }.join("\n")) unless errors.empty?
+
+      Result.new(fields||[], rows, cmd_tag)
+    end
+
+    # Escape bytea values.  Uses historical format instead of hex
+    # format for maximum compatibility.
+    def escape_bytea(str)
+      str.gsub(/[\000-\037\047\134\177-\377]/n){|b| "\\#{sprintf('%o', b.each_byte{|x| break x}).rjust(3, '0')}"}
+    end
+    
+    # Escape strings by doubling apostrophes.  This only works if standard
+    # conforming strings are used.
+    def escape_string(str)
+      str.gsub("'", "''")
+    end
+
+    def block(timeout=nil)
+    end
+
+    def status
+      CONNECTION_OK
+    end
+
+    private
+
+    def check_password!(password)
+      raise PGError, "no password specified" unless password
+    end
+
+    # Doesn't check the connection actually works, only checks that
+    # it hasn't been closed.
+    def check_connection_open!
+      raise(PGError, "connection already closed") if @conn.nil?
+    end
+
+    def _connection(host, port)
+      if host.nil?
+        if RUBY_PLATFORM =~ /mingw|win/i
+          TCPSocket.new('localhost', port)
+        else
+          UNIXSocket.new("/tmp/.s.PGSQL.#{port}")
+        end
+      elsif host.start_with?('/')
+        UNIXSocket.new(host)
+      else
+        TCPSocket.new(host, port)
+      end
     end
   end
 end
 
-end # module PostgresPR
+require_relative 'message'
+require_relative 'result'

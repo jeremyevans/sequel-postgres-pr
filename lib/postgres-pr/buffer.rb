@@ -1,15 +1,8 @@
-require 'binary_writer'
-require 'binary_reader'
-
 # Fixed size buffer.
-class Buffer
+class PostgresPR::Buffer
 
   class Error < RuntimeError; end
   class EOF < Error; end 
-
-  def self.from_string(str)
-    new(str)
-  end
 
   def self.of_size(size)
     raise ArgumentError if size < 0
@@ -87,11 +80,53 @@ class Buffer
     return str
   end
 
-  # read till the end of the buffer
-  def read_rest
-    read(self.size-@position)
+  IS_BIG_ENDIAN = [0x12345678].pack("L") == "\x12\x34\x56\x78"
+  private_constant :IS_BIG_ENDIAN
+
+  def read_byte
+    ru(1, 'C')
   end
 
-  include BinaryWriterMixin
-  include BinaryReaderMixin
+  def read_int16
+    ru_swap(2, 's') 
+  end
+
+  def read_int32
+    ru_swap(4, 'l') 
+  end
+
+  def write_byte(val)
+    pw(val, 'C')
+  end
+
+  def write_int32(val)
+    pw(val, 'N')
+  end
+
+  private
+
+  def pw(val, template)
+    write([val].pack(template))
+  end
+
+  # shortcut method for readn+unpack
+  def ru(size, template)
+    read(size).unpack(template).first
+  end
+
+  if [0x12345678].pack("L") == "\x12\x34\x56\x78"
+    # :nocov:
+    # Big Endian
+    def ru_swap(size, template)
+      read(size).unpack(template).first
+    end
+    # :nocov:
+  else
+    # Little Endian
+    def ru_swap(size, template)
+      str = read(size)
+      str.reverse!
+      str.unpack(template).first
+    end
+  end
 end
