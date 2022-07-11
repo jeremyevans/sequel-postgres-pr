@@ -1,1 +1,2 @@
-/jeremyevans-postgres-pr-*.gem
+/*.gem
+/coverage
