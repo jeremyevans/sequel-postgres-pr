@@ -25,5 +25,5 @@ desc "Run CI tests"
 task :spec_ci do
   sh %'#{FileUtils::RUBY} test/postgres_pr_test.rb'
   ENV['SEQUEL_POSTGRES_URL'] = "postgres://localhost/?user=postgres&password=postgres"
-  sh %'cd sequel && #{FileUtils::RUBY} -I lib -I ../lib spec/adapter_spec.rb postgres'
+  sh %'cd sequel && #{FileUtils::RUBY} -Ku -I lib -I ../lib spec/adapter_spec.rb postgres'
 end
