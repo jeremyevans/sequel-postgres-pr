@@ -98,6 +98,8 @@ module PostgresPR
         @auth_type = buffer.read_int32 
         yield if block_given?
       end
+    rescue ParseError => e
+      raise PGError, "unsupported authentication type: #{@auth_type} buffer: #{buffer.content[buffer.position..-1].inspect}", e.backtrace
     end
   end
 
