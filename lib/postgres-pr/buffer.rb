@@ -9,6 +9,8 @@ class PostgresPR::Buffer
     new('#' * size)
   end 
 
+  # This should be called with a mutable string, which will be used as the
+  # underlying buffer.
   def initialize(content)
     @size = content.size
     @content = content

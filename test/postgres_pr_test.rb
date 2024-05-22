@@ -140,7 +140,7 @@ end
 
 describe PostgresPR::Buffer do
   before do
-    @buf = PostgresPR::Buffer.new('123')
+    @buf = PostgresPR::Buffer.new('123'.dup)
   end
 
   it ".of_size should raise for invalid size" do
