@@ -21,6 +21,7 @@ INVALID_PASSWORD_AUTH = "R\x00\x00\x00\b\x00\x00\x00\x03E\x00\x00\x00dSFATAL\x00
 VALID_MD5_AUTH = "R\x00\x00\x00\f\x00\x00\x00\x05*Y\x15\xA3R\x00\x00\x00\b\x00\x00\x00\x00K\x00\x00\x00\f\x00\x00\xA4\xA8M\xEC\xF7\x14Z\x00\x00\x00\x05I"
 INVALID_MD5_AUTH = "R\x00\x00\x00\f\x00\x00\x00\x05\xD2\xDAi\x80E\x00\x00\x00dSFATAL\x00C28000\x00Mpassword authentication failed for user \"sequel_test\"\x00Fauth.c\x00L273\x00Rauth_failed\x00\x00"
 UNKNOWN_AUTH = "R\x00\x00\x00\b\x00\x00\x00\x01"
+UNHANDLED_AUTH_TYPE = "R\u0000\u0000\u0000\u0017\u0000\u0000\u0000\nSCRAM-SHA-256\u0000\u0000"
 
 STARTUP_ERROR = "E\x00\x00\x00NSERROR\x00C42601\x00Msyntax error at or near \"S\"\x00P1\x00Fscan.l\x00L911\x00Rbase_yyerror\x00\x00"
 UNEXPECTED_STARTUP_MESSAGE = "D\x00\x00\x00\v\x00\x01\x00\x00\x00\x011"
@@ -62,6 +63,10 @@ describe PostgresPR::Connection do
 
   it "should raise error for unknown authentication type" do
     proc{db(UNKNOWN_AUTH, '')}.must_raise PostgresPR::PGError
+  end
+
+  it "should raise error for unhandled authentication type" do
+    proc{db(UNHANDLED_AUTH_TYPE, '')}.must_raise PostgresPR::PGError
   end
 
   it "should handle errors during startup" do
