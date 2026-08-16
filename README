@@ -6,5 +6,5 @@ with the goal of proper functioning with Sequel's postgres adapter.
 The only supported PostgreSQL authentication methods are password and md5. SSL
 is not supported. COPY and LISTEN are not supported.
 
-This requires Sequel 5.59.0.  For older versions of Sequel, please use the
+This requires Sequel 5.59.0+.  For older versions of Sequel, please use the
 jeremyevans-postgres-pr gem.
