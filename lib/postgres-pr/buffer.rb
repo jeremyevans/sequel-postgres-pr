@@ -117,12 +117,12 @@ class PostgresPR::Buffer
   end
 
   if [0x12345678].pack("L") == "\x12\x34\x56\x78"
-    # :nocov:
+    # simplecov:disable
     # Big Endian
     def ru_swap(size, template)
       read(size).unpack(template).first
     end
-    # :nocov:
+    # simplecov:enable
   else
     # Little Endian
     def ru_swap(size, template)

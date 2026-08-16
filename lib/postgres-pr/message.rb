@@ -235,12 +235,12 @@ module PostgresPR
     register_message_type 'Q'
     attr_accessor :query
 
-    # :nocov:
+    # simplecov:disable
     if RUBY_VERSION < '2'
       def initialize(query)
         @query = String.new(query).force_encoding('BINARY')
       end
-    # :nocov:
+    # simplecov:enable
     else
       def initialize(query)
         @query = query.b
