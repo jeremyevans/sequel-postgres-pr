@@ -41,7 +41,7 @@ jobs:
           - { os: ubuntu-26.04, ruby: jruby-9.4 }
           - { os: ubuntu-26.04, ruby: jruby-10.0 }
           - { os: ubuntu-26.04, ruby: jruby-10.1 }
-          - { os: ubuntu-22.04, ruby: "1.9.3" }
+          - { os: ubuntu-22.04, ruby: "1.9.3", sequel_ref: "5.108.0" }
           - { os: ubuntu-22.04, ruby: jruby-9.1 }
           - { os: ubuntu-22.04, ruby: jruby-9.2 }
     runs-on: ${{ matrix.os }}
@@ -54,6 +54,7 @@ jobs:
       with:
         repository: jeremyevans/sequel
         path: sequel
+        ref: ${{ matrix.sequel_ref }}
     - uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby }}
